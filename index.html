@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تقویت حافظه، تمیز دیداری و شنیداری</title>
+    <!-- بارگذاری فونت وزیرمتن برای خوانایی عالی در فارسی -->
+    <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css" />
+    <!-- بارگذاری Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- بارگذاری Tone.js برای تولید صداهای دقیق و بدون نیاز به فایل خارجی -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <style>
+        body {
+            font-family: 'Vazirmatn', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            min-height: 100vh;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* انیمیشن‌های سفارشی برای حس پویایی بازی */
+        @keyframes pulseGlow {
+            0%, 100% { transform: scale(1); filter: brightness(1); }
+            50% { transform: scale(1.06); filter: brightness(1.35); }
+        }
+
+        .tile-active {
+            animation: pulseGlow 0.45s ease-in-out;
+            box-shadow: 0 0 25px rgba(255, 255, 255, 0.8);
+            border-color: white !important;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-8px); }
+            50% { transform: translateX(8px); }
+            75% { transform: translateX(-8px); }
+        }
+
+        .shake-error {
+            animation: shake 0.4s ease-in-out;
+        }
+
+        /* استایل دکمه‌های سه بعدی و جذاب */
+        .btn-game {
+            transition: all 0.15s ease;
+            box-shadow: 0 4px 0 rgba(0, 0, 0, 0.3);
+        }
+        .btn-game:active {
+            transform: translateY(3px);
+            box-shadow: 0 1px 0 rgba(0, 0, 0, 0.3);
+        }
+
+        /* انیمیشن موج صدا */
+        .sound-wave {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            height: 40px;
+        }
+        .sound-bar {
+            width: 6px;
+            height: 12px;
+            background-color: #38bdf8;
+            border-radius: 9999px;
+            transition: height 0.15s ease;
+        }
+        .playing .sound-bar {
+            animation: waveAnim 0.6s infinite ease-in-out;
+        }
+        .playing .sound-bar:nth-child(2) { animation-delay: 0.1s; }
+        .playing .sound-bar:nth-child(3) { animation-delay: 0.2s; }
+        .playing .sound-bar:nth-child(4) { animation-delay: 0.3s; }
+        .playing .sound-bar:nth-child(5) { animation-delay: 0.15s; }
+
+        @keyframes waveAnim {
+            0%, 100% { height: 10px; }
+            50% { height: 38px; background-color: #818cf8; }
+        }
+    </style>
+</head>
+<body class="text-slate-100 flex flex-col items-center justify-between p-4 sm:p-6">
+
+    <!-- هدر و نوار امتیازات -->
+    <header class="w-full max-w-2xl flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-800/70 backdrop-blur-md p-4 rounded-2xl border border-slate-700/60 shadow-xl">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500 to-cyan-400 flex items-center justify-center shadow-lg">
+                <!-- آیکون مغز SVG -->
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                </svg>
+            </div>
+            <div>
+                <h1 class="text-lg sm:text-xl font-bold bg-clip-text text-transparent bg-gradient-to-l from-cyan-300 to-indigo-300">باشگاه تمرین مغز</h1>
+                <p class="text-xs text-slate-400">تقویت حافظه، دقت دیداری و تمیز شنیداری</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+            <div class="bg-slate-900/80 px-4 py-2 rounded-xl border border-slate-700 flex items-center gap-2">
+                <span class="text-xs text-slate-400">امتیاز کل:</span>
+                <span id="total-score" class="text-lg font-extrabold text-amber-400">0</span>
+            </div>
+            <button id="home-btn" onclick="showMenu()" class="hidden btn-game bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-1">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 0 001 1m-6 0h6"></path></svg>
+                منوی اصلی
+            </button>
+        </div>
+    </header>
+
+    <!-- کانتینر اصلی محتوا -->
+    <main class="w-full max-w-2xl my-auto py-6">
+
+        <!-- ۱. صفحه منوی اصلی (انتخاب بخش بازی) -->
+        <section id="menu-screen" class="space-y-6">
+            <div class="text-center space-y-2">
+                <h2 class="text-2xl font-bold text-white">بخش مورد نظر خود را انتخاب کنید</h2>
+                <p class="text-sm text-slate-300">هر بخش به صورت مستقل یک مهارت شناختی خاص را به چالش می‌کشد</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <!-- کارت بخش ۱: حافظه فعال -->
+                <div onclick="startGame('memory')" class="cursor-pointer group bg-slate-800/80 hover:bg-slate-800 border border-slate-700 hover:border-indigo-400 p-6 rounded-2xl transition-all duration-200 flex flex-col justify-between shadow-lg hover:-translate-y-1">
+                    <div>
+                        <div class="w-12 h-12 rounded-2xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                            <svg class="w-7 h-7" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
+                        </div>
+                        <h3 class="text-lg font-bold text-white mb-2">۱. حافظه توالی</h3>
+                        <p class="text-xs text-slate-400 leading-relaxed">الگوی روشن شدن خانه‌ها را به خاطر بسپارید و دقیقاً به همان ترتیب تکرار کنید.</p>
+                    </div>
+                    <div class="mt-6 pt-3 border-t border-slate-700/60 flex items-center justify-between text-xs text-indigo-300 font-semibold">
+                        <span>شروع تمرین</span>
+                        <span>&larr;</span>
+                    </div>
+                </div>
+
+                <!-- کارت بخش ۲: تمیز دیداری -->
+                <div onclick="startGame('visual')" class="cursor-pointer group bg-slate-800/80 hover:bg-slate-800 border border-slate-700 hover:border-emerald-400 p-6 rounded-2xl transition-all duration-200 flex flex-col justify-between shadow-lg hover:-translate-y-1">
+                    <div>
+                        <div class="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                            <svg class="w-7 h-7" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                        </div>
+                        <h3 class="text-lg font-bold text-white mb-2">۲. تمیز دیداری</h3>
+                        <p class="text-xs text-slate-400 leading-relaxed">از میان شکل‌ها و رنگ‌های بسیار شبیه به هم، گزینه متفاوت را در کمترین زمان پیدا کنید.</p>
+                    </div>
+                    <div class="mt-6 pt-3 border-t border-slate-700/60 flex items-center justify-between text-xs text-emerald-300 font-semibold">
+                        <span>شروع تمرین</span>
+                        <span>&larr;</span>
+                    </div>
+                </div>
+
+                <!-- کارت بخش ۳: تمیز شنیداری -->
+                <div onclick="startGame('auditory')" class="cursor-pointer group bg-slate-800/80 hover:bg-slate-800 border border-slate-700 hover:border-cyan-400 p-6 rounded-2xl transition-all duration-200 flex flex-col justify-between shadow-lg hover:-translate-y-1">
+                    <div>
+                        <div class="w-12 h-12 rounded-2xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                            <svg class="w-7 h-7" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"></path></svg>
+                        </div>
+                        <h3 class="text-lg font-bold text-white mb-2">۳. تمیز شنیداری</h3>
+                        <p class="text-xs text-slate-400 leading-relaxed">به دو یا چند صدا گوش دهید و تفاوت‌های ظریف فرکانس، زیر و بمی یا ریتم را تشخیص دهید.</p>
+                    </div>
+                    <div class="mt-6 pt-3 border-t border-slate-700/60 flex items-center justify-between text-xs text-cyan-300 font-semibold">
+                        <span>شروع تمرین</span>
+                        <span>&larr;</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ۲. محیط بازی: بخش حافظه (Memory Matrix / Simon) -->
+        <section id="memory-screen" class="hidden bg-slate-800/80 backdrop-blur-md border border-slate-700 rounded-3xl p-6 shadow-2xl space-y-6">
+            <div class="flex items-center justify-between border-b border-slate-700 pb-4">
+                <div>
+                    <h2 class="text-xl font-bold text-indigo-300">تمرین حافظه توالی</h2>
+                    <p id="memory-status" class="text-xs text-slate-300 mt-1">آماده شوید...</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <div id="memory-lives-box" class="hidden bg-rose-950/80 text-rose-300 px-2.5 py-1 rounded-lg text-sm font-bold border border-rose-700/50 flex items-center gap-1" title="فرصت‌های باقی‌مانده"></div>
+                    <span class="bg-indigo-950 text-indigo-300 px-3 py-1 rounded-lg text-sm font-bold border border-indigo-700/50">سطح <span id="memory-level">1</span></span>
+                </div>
+            </div>
+
+            <!-- شبکه کاشی‌های حافظه -->
+            <div id="memory-grid" class="grid grid-cols-3 gap-3 sm:gap-4 max-w-sm mx-auto aspect-square p-2">
+                <!-- کاشی‌ها توسط جاوااسکریپت ساخته می‌شوند -->
+            </div>
+
+            <div class="flex flex-wrap justify-center gap-3 pt-2">
+                <button id="memory-start-btn" onclick="initMemoryRound()" class="btn-game bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-8 rounded-xl">
+                    شروع مرحله
+                </button>
+                <button id="memory-help-btn" onclick="useMemoryHelp()" class="hidden btn-game bg-amber-600 hover:bg-amber-500 text-white font-bold py-3 px-6 rounded-xl flex items-center gap-2 text-sm">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                    کمک (پخش مجدد)
+                </button>
+            </div>
+        </section>
+
+        <!-- ۳. محیط بازی: بخش تمیز دیداری (Visual Discrimination) -->
+        <section id="visual-screen" class="hidden bg-slate-800/80 backdrop-blur-md border border-slate-700 rounded-3xl p-6 shadow-2xl space-y-6">
+            <div class="flex items-center justify-between border-b border-slate-700 pb-4">
+                <div>
+                    <h2 class="text-xl font-bold text-emerald-300">تمرین تمیز دیداری</h2>
+                    <p id="visual-instruction" class="text-xs text-slate-300 mt-1">کدام گزینه با بقیه تفاوت جزئی دارد؟</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <div id="visual-lives-box" class="hidden bg-rose-950/80 text-rose-300 px-2.5 py-1 rounded-lg text-sm font-bold border border-rose-700/50 flex items-center gap-1" title="فرصت‌های باقی‌مانده"></div>
+                    <!-- نمایشگر تایمر در مراحل بالاتر -->
+                    <div id="visual-timer-box" class="hidden bg-amber-950/80 text-amber-300 px-3 py-1 rounded-lg text-sm font-bold border border-amber-600/50 flex items-center gap-1">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <span id="visual-timer">10</span>s
+                    </div>
+                    <span class="bg-emerald-950 text-emerald-300 px-3 py-1 rounded-lg text-sm font-bold border border-emerald-700/50">مرحله <span id="visual-level">1</span></span>
+                </div>
+            </div>
+
+            <!-- شبکه آیتم‌های دیداری -->
+            <div id="visual-grid" class="grid grid-cols-3 gap-3 max-w-md mx-auto p-2">
+                <!-- آیتم‌ها با جاوااسکریپت ساخته می‌شوند -->
+            </div>
+
+            <div class="text-center text-xs text-slate-400">
+                با پیشرفت در مراحل، شباهت رنگ‌ها و چرخش اشکال بیشتر می‌شود، حروف شبیه به هم اضافه می‌شوند و تایمر فعال می‌گردد!
+            </div>
+        </section>
+
+        <!-- ۴. محیط بازی: بخش تمیز شنیداری (Auditory Discrimination) -->
+        <section id="auditory-screen" class="hidden bg-slate-800/80 backdrop-blur-md border border-slate-700 rounded-3xl p-6 shadow-2xl space-y-6">
+            <div class="flex items-center justify-between border-b border-slate-700 pb-4">
+                <div>
+                    <h2 class="text-xl font-bold text-cyan-300">تمرین تمیز شنیداری</h2>
+                    <p id="auditory-instruction" class="text-xs text-slate-300 mt-1">به صداها دقت کنید و پاسخ درست را انتخاب کنید</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <div id="auditory-lives-box" class="hidden bg-rose-950/80 text-rose-300 px-2.5 py-1 rounded-lg text-sm font-bold border border-rose-700/50 flex items-center gap-1" title="فرصت‌های باقی‌مانده"></div>
+                    <span class="bg-cyan-950 text-cyan-300 px-3 py-1 rounded-lg text-sm font-bold border border-cyan-700/50">مرحله <span id="auditory-level">1</span></span>
+                </div>
+            </div>
+
+            <!-- نمایشگر بصری پخش صدا -->
+            <div class="bg-slate-900/90 border border-slate-700 rounded-2xl p-6 flex flex-col items-center justify-center space-y-4">
+                <div id="sound-wave-box" class="sound-wave">
+                    <div class="sound-bar"></div>
+                    <div class="sound-bar"></div>
+                    <div class="sound-bar"></div>
+                    <div class="sound-bar"></div>
+                    <div class="sound-bar"></div>
+                </div>
+                <p id="auditory-prompt" class="text-sm font-medium text-cyan-200 text-center">برای شنیدن صداها دکمه زیر را بزنید</p>
+                <button id="play-audio-btn" onclick="playCurrentAuditoryChallenge()" class="btn-game bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2.5 px-6 rounded-xl flex items-center gap-2 text-sm">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    پخش صداها
+                </button>
+            </div>
+
+            <!-- گزینه‌های پاسخ شنیداری -->
+            <div id="auditory-options" class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                <!-- دکمه‌های گزینه توسط جاوااسکریپت پر می‌شوند -->
+            </div>
+        </section>
+
+    </main>
+
+    <!-- فوتر و کادر پیام بازخورد (به جای alert) -->
+    <footer class="w-full max-w-2xl text-center">
+        <div id="toast-message" class="opacity-0 transition-opacity duration-300 pointer-events-none inline-block bg-slate-800 text-white px-5 py-2.5 rounded-full text-sm font-medium border border-slate-600 shadow-lg">
+            پیام سیستم
+        </div>
+    </footer>
+
+    <script>
+        // ==========================================
+        // مدیریت وضعیت کلی و سیستم صوتی (Tone.js)
+        // ==========================================
+        let totalScore = 0;
+        let synth = null;
+        let isAudioInitialized = false;
+
+        // راه‌اندازی اولیه موتور صوتی با اولین تعامل کاربر
+        async function ensureAudio() {
+            try {
+                if (typeof Tone === 'undefined') {
+                    console.warn('Tone.js هنوز بارگذاری نشده است.');
+                    return false;
+                }
+                if (!isAudioInitialized) {
+                    await Tone.start();
+                    synth = new Tone.PolySynth(Tone.Synth, {
+                        oscillator: { type: "triangle" },
+                        envelope: { attack: 0.02, decay: 0.1, sustain: 0.3, release: 0.4 }
+                    }).toDestination();
+                    isAudioInitialized = true;
+                }
+                return true;
+            } catch (err) {
+                console.error('خطا در راه‌اندازی صدا:', err);
+                return false;
+            }
+        }
+
+        // پخش صدای بازخورد (موفقیت یا خطا)
+        function playFeedbackSound(isSuccess) {
+            try {
+                if (!isAudioInitialized || !synth) return;
+                const now = Tone.now();
+                if (isSuccess) {
+                    synth.triggerAttackRelease("C5", "16n", now);
+                    synth.triggerAttackRelease("E5", "16n", now + 0.08);
+                    synth.triggerAttackRelease("G5", "8n", now + 0.16);
+                } else {
+                    synth.triggerAttackRelease("G3", "8n", now);
+                    synth.triggerAttackRelease("Eb3", "4n", now + 0.12);
+                }
+            } catch (err) {
+                console.error('خطا در پخش افکت صوتی:', err);
+            }
+        }
+
+        function updateScore(points) {
+            totalScore += points;
+            document.getElementById('total-score').textContent = totalScore;
+        }
+
+        // به‌روزرسانی نمایشگر جان‌ها (فرصت خطا) از مرحله ۵ به بعد
+        function updateLivesDisplay(boxId, level, mistakes) {
+            const box = document.getElementById(boxId);
+            if (!box) return;
+            if (level >= 5) {
+                box.classList.remove('hidden');
+                const remaining = Math.max(0, 3 - mistakes);
+                box.innerHTML = '❤️'.repeat(remaining) + '<span class="opacity-30">' + '🖤'.repeat(mistakes) + '</span>';
+            } else {
+                box.classList.add('hidden');
+            }
+        }
+
+        // نمایش پیام بازخورد غیرمسدودکننده
+        let toastTimeout;
+        function showToast(text, type = 'info') {
+            const toast = document.getElementById('toast-message');
+            toast.textContent = text;
+            toast.className = 'transition-opacity duration-300 inline-block px-5 py-2.5 rounded-full text-sm font-bold shadow-lg border ';
+            
+            if (type === 'success') {
+                toast.className += 'bg-emerald-900/90 text-emerald-200 border-emerald-500 opacity-100';
+            } else if (type === 'error') {
+                toast.className += 'bg-rose-900/90 text-rose-200 border-rose-500 opacity-100';
+            } else {
+                toast.className += 'bg-slate-800/90 text-cyan-200 border-slate-600 opacity-100';
+            }
+
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                toast.classList.remove('opacity-100');
+                toast.classList.add('opacity-0');
+            }, 2200);
+        }
+
+        // ==========================================
+        // ناوبری بین بخش‌های مختلف
+        // ==========================================
+        function showMenu() {
+            clearVisualTimer();
+            document.getElementById('menu-screen').classList.remove('hidden');
+            document.getElementById('memory-screen').classList.add('hidden');
+            document.getElementById('visual-screen').classList.add('hidden');
+            document.getElementById('auditory-screen').classList.add('hidden');
+            document.getElementById('home-btn').classList.add('hidden');
+        }
+
+        async function startGame(mode) {
+            try {
+                await ensureAudio();
+                document.getElementById('menu-screen').classList.add('hidden');
+                document.getElementById('home-btn').classList.remove('hidden');
+
+                if (mode === 'memory') {
+                    document.getElementById('memory-screen').classList.remove('hidden');
+                    setupMemoryBoard();
+                } else if (mode === 'visual') {
+                    document.getElementById('visual-screen').classList.remove('hidden');
+                    setupVisualRound();
+                } else if (mode === 'auditory') {
+                    document.getElementById('auditory-screen').classList.remove('hidden');
+                    setupAuditoryRound();
+                }
+            } catch (err) {
+                console.error('خطا در شروع بخش بازی:', err);
+                showToast('خطایی رخ داد، دوباره تلاش کنید.', 'error');
+            }
+        }
+
+        // ==========================================
+        // بخش ۱: بازی تقویت حافظه توالی (Memory)
+        // ==========================================
+        let memoryLevel = 1;
+        let memoryMistakes = 0;
+        let memorySequence = [];
+        let playerSequence = [];
+        let isShowingSequence = false;
+        let memoryHelpUsed = false;
+
+        // نت‌های موسیقی برای هر خانه (۹ خانه)
+        const memoryNotes = ["C4", "D4", "E4", "F4", "G4", "A4", "B4", "C5", "D5"];
+        const tileColors = [
+            "bg-rose-500/80 border-rose-400",
+            "bg-amber-500/80 border-amber-400",
+            "bg-emerald-500/80 border-emerald-400",
+            "bg-cyan-500/80 border-cyan-400",
+            "bg-indigo-500/80 border-indigo-400",
+            "bg-purple-500/80 border-purple-400",
+            "bg-pink-500/80 border-pink-400",
+            "bg-teal-500/80 border-teal-400",
+            "bg-blue-500/80 border-blue-400"
+        ];
+
+        function setupMemoryBoard() {
+            const grid = document.getElementById('memory-grid');
+            grid.innerHTML = '';
+            for (let i = 0; i < 9; i++) {
+                const tile = document.createElement('button');
+                tile.id = `mem-tile-${i}`;
+                tile.className = `rounded-2xl bg-slate-700/70 border-2 border-slate-600 transition-all duration-150 flex items-center justify-center shadow-inner cursor-pointer active:scale-95`;
+                tile.onclick = () => handleMemoryTileClick(i);
+                grid.appendChild(tile);
+            }
+            document.getElementById('memory-level').textContent = memoryLevel;
+            updateLivesDisplay('memory-lives-box', memoryLevel, memoryMistakes);
+            document.getElementById('memory-status').textContent = 'دکمه شروع مرحله را بزنید';
+            document.getElementById('memory-start-btn').classList.remove('hidden');
+            document.getElementById('memory-help-btn').classList.add('hidden');
+        }
+
+        async function initMemoryRound() {
+            await ensureAudio();
+            document.getElementById('memory-start-btn').classList.add('hidden');
+            document.getElementById('memory-help-btn').classList.add('hidden');
+            playerSequence = [];
+            memorySequence = [];
+            memoryHelpUsed = false;
+            
+            // طول توالی بر اساس سطح (شروع از ۳ خانه)
+            const seqLength = memoryLevel + 2;
+            for (let i = 0; i < seqLength; i++) {
+                memorySequence.push(Math.floor(Math.random() * 9));
+            }
+
+            playMemorySequence();
+        }
+
+        async function playMemorySequence() {
+            isShowingSequence = true;
+            document.getElementById('memory-help-btn').classList.add('hidden');
+            document.getElementById('memory-status').textContent = 'با دقت به ترتیب روشن شدن خانه‌ها نگاه کنید...';
+            
+            // تاخیر کوتاه قبل از شروع
+            await new Promise(r => setTimeout(r, 600));
+
+            const speed = Math.max(320, 650 - (memoryLevel * 35));
+
+            for (let i = 0; i < memorySequence.length; i++) {
+                const idx = memorySequence[i];
+                await activateMemoryTile(idx, speed);
+                await new Promise(r => setTimeout(r, 150));
+            }
+
+            isShowingSequence = false;
+            if (playerSequence.length > 0) {
+                document.getElementById('memory-status').textContent = `ادامه دهید! خانه شماره ${playerSequence.length + 1} را لمس کنید.`;
+            } else {
+                document.getElementById('memory-status').textContent = 'نوبت شماست! خانه‌ها را به همان ترتیب لمس کنید.';
+            }
+            if (!memoryHelpUsed) {
+                document.getElementById('memory-help-btn').classList.remove('hidden');
+            }
+        }
+
+        async function useMemoryHelp() {
+            if (isShowingSequence || memorySequence.length === 0 || memoryHelpUsed) return;
+            await ensureAudio();
+            memoryHelpUsed = true;
+            const completedSteps = playerSequence.length;
+            if (completedSteps > 0) {
+                showToast(`الگو دوباره پخش می‌شود (از خانه شماره ${completedSteps + 1} ادامه دهید)`, 'info');
+            } else {
+                showToast('الگو دوباره پخش می‌شود (از ابتدای ترتیب شروع کنید)', 'info');
+            }
+            playMemorySequence();
+        }
+
+        function activateMemoryTile(index, duration = 400) {
+            return new Promise(resolve => {
+                const tile = document.getElementById(`mem-tile-${index}`);
+                if (!tile) {
+                    resolve();
+                    return;
+                }
+                const activeClass = tileColors[index];
+                
+                tile.classList.remove('bg-slate-700/70', 'border-slate-600');
+                tile.classList.add(...activeClass.split(' '), 'tile-active');
+                
+                try {
+                    if (isAudioInitialized && synth) {
+                        synth.triggerAttackRelease(memoryNotes[index], "8n");
+                    }
+                } catch (e) {}
+
+                setTimeout(() => {
+                    tile.classList.remove(...activeClass.split(' '), 'tile-active');
+                    tile.classList.add('bg-slate-700/70', 'border-slate-600');
+                    resolve();
+                }, duration);
+            });
+        }
+
+        async function handleMemoryTileClick(index) {
+            if (isShowingSequence || memorySequence.length === 0) return;
+
+            activateMemoryTile(index, 250);
+            playerSequence.push(index);
+
+            const currentStep = playerSequence.length - 1;
+
+            // بررسی صحت انتخاب کاربر
+            if (playerSequence[currentStep] !== memorySequence[currentStep]) {
+                isShowingSequence = true;
+                document.getElementById('memory-help-btn').classList.add('hidden');
+                playFeedbackSound(false);
+                
+                const clickedTile = document.getElementById(`mem-tile-${index}`);
+                const correctIndex = memorySequence[currentStep];
+                const correctTile = document.getElementById(`mem-tile-${correctIndex}`);
+
+                document.getElementById('memory-grid').classList.add('shake-error');
+                if (clickedTile) {
+                    clickedTile.classList.add('border-rose-500', 'bg-rose-950/60');
+                }
+
+                // بررسی وضعیت جان‌ها در سطح ۵ به بالا
+                if (memoryLevel >= 5) {
+                    memoryMistakes++;
+                    updateLivesDisplay('memory-lives-box', memoryLevel, memoryMistakes);
+
+                    // اگر هنوز جان باقی مانده (خطای اول یا دوم): جواب لو نرود و دوباره همین الگو پخش شود
+                    if (memoryMistakes < 3) {
+                        showToast(`اشتباه بود! یک جان کم شد (${3 - memoryMistakes} فرصت باقی‌مانده). دوباره تلاش کنید!`, 'error');
+                        document.getElementById('memory-status').textContent = 'اشتباه! الگو دوباره پخش می‌شود، با دقت نگاه کنید...';
+
+                        setTimeout(() => {
+                            document.getElementById('memory-grid').classList.remove('shake-error');
+                            if (clickedTile) {
+                                clickedTile.classList.remove('border-rose-500', 'bg-rose-950/60');
+                            }
+                            playerSequence = [];
+                            playMemorySequence();
+                        }, 1100);
+                        return;
+                    }
+                }
+                
+                // نمایش خانه درست هنگام باخت یا در سطوح زیر ۵
+                if (correctTile) {
+                    correctTile.classList.remove('bg-slate-700/70', 'border-slate-600');
+                    correctTile.classList.add('border-amber-400', 'ring-4', 'ring-amber-400/60', 'bg-amber-500/30', 'scale-105', 'text-amber-200', 'font-extrabold', 'text-2xl');
+                    correctTile.textContent = currentStep + 1;
+                    try {
+                        if (isAudioInitialized && synth) {
+                            synth.triggerAttackRelease(memoryNotes[correctIndex], "4n");
+                        }
+                    } catch (e) {}
+                }
+
+                const isGameOver = (memoryLevel >= 5 && memoryMistakes >= 3);
+                if (isGameOver) {
+                    showToast(`۳ خطا در سطح ${memoryLevel}! این سطح را باختید.`, 'error');
+                    document.getElementById('memory-status').textContent = `باختید! ۳ خطا در سطح ${memoryLevel} ثبت شد.`;
+                } else {
+                    showToast('اشتباه بود! خانه صحیح مشخص شد.', 'error');
+                    document.getElementById('memory-status').textContent = `خانه صحیح مرحله ${currentStep + 1} با رنگ طلایی مشخص شد.`;
+                }
+
+                setTimeout(() => {
+                    document.getElementById('memory-grid').classList.remove('shake-error');
+                    if (clickedTile) {
+                        clickedTile.classList.remove('border-rose-500', 'bg-rose-950/60');
+                    }
+                    if (correctTile) {
+                        correctTile.classList.remove('border-amber-400', 'ring-4', 'ring-amber-400/60', 'bg-amber-500/30', 'scale-105', 'text-amber-200', 'font-extrabold', 'text-2xl');
+                        correctTile.classList.add('bg-slate-700/70', 'border-slate-600');
+                        correctTile.textContent = '';
+                    }
+                    memorySequence = [];
+                    isShowingSequence = false;
+
+                    if (isGameOver) {
+                        memoryMistakes = 0;
+                        document.getElementById('memory-level').textContent = memoryLevel;
+                        updateLivesDisplay('memory-lives-box', memoryLevel, memoryMistakes);
+                        document.getElementById('memory-status').textContent = `دکمه شروع مجدد سطح ${memoryLevel} را بزنید`;
+                        document.getElementById('memory-start-btn').textContent = `شروع مجدد سطح ${memoryLevel}`;
+                    } else {
+                        document.getElementById('memory-start-btn').textContent = 'تلاش مجدد';
+                    }
+                    document.getElementById('memory-start-btn').classList.remove('hidden');
+                }, 1500);
+                return;
+            }
+
+            // اگر کل توالی درست وارد شد
+            if (playerSequence.length === memorySequence.length) {
+                isShowingSequence = true;
+                document.getElementById('memory-help-btn').classList.add('hidden');
+                playFeedbackSound(true);
+                const earned = memoryHelpUsed ? Math.max(5, memoryLevel * 10) : memoryLevel * 15;
+                updateScore(earned);
+                showToast(`آفرین! +${earned} امتیاز`, 'success');
+                
+                memoryLevel++;
+                memoryMistakes = 0;
+                if (memoryLevel === 5) {
+                    showToast('از سطح ۵ قانون ۳ خطا در هر مرحله فعال شد!', 'info');
+                }
+                document.getElementById('memory-level').textContent = memoryLevel;
+                updateLivesDisplay('memory-lives-box', memoryLevel, memoryMistakes);
+                document.getElementById('memory-status').textContent = 'فوق‌العاده بود! آماده مرحله بعد...';
+                
+                setTimeout(() => {
+                    initMemoryRound();
+                }, 1200);
+            }
+        }
+
+        // ==========================================
+        // بخش ۲: بازی تمیز دیداری (Visual Discrimination)
+        // ==========================================
+        let visualLevel = 1;
+        let visualMistakes = 0;
+        let currentVisualChallengeType = null; // نگه‌داشتن نوع چالش فعلی تا زمان حل موفق آن
+        let isVisualLocked = false; // جلوگیری از کلیک‌های مکرر هنگام نمایش جواب
+        let visualTimerInterval = null;
+        let visualTimeLeft = 0;
+
+        function clearVisualTimer() {
+            if (visualTimerInterval) {
+                clearInterval(visualTimerInterval);
+                visualTimerInterval = null;
+            }
+        }
+
+        // جفت حروف فارسی شبیه به هم برای تمرین تمیز دیداری (فقط حروف مشخص‌شده)
+        const similarPersianLetters = [
+            ['ب', 'پ'], ['ب', 'ت'], ['پ', 'ت'], ['ت', 'ث'], ['پ', 'ث'],
+            ['ج', 'چ'], ['ج', 'ح'], ['چ', 'خ'], ['ح', 'خ'],
+            ['د', 'ذ'],
+            ['ر', 'ز'],
+            ['ص', 'ض'],
+            ['ط', 'ظ'],
+            ['ع', 'غ'],
+            ['ک', 'گ']
+        ];
+
+        // آیکون‌های برداری برای چالش تمیز دیداری
+        const visualShapes = [
+            // مثلث جهت‌دار
+            `<svg class="w-4/6 h-4/6" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L22 20H2L12 2Z"/></svg>`,
+            // فلش
+            `<svg class="w-4/6 h-4/6" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"/></svg>`,
+            // نیم‌دایره
+            `<svg class="w-4/6 h-4/6" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2A10 10 0 0 0 2 12h20A10 10 0 0 0 12 2z"/></svg>`,
+            // مربع با برش گوشه
+            `<svg class="w-4/6 h-4/6" viewBox="0 0 24 24" fill="currentColor"><path d="M4 4h11l5 5v11H4V4z"/></svg>`,
+            // ستاره نامتقارن
+            `<svg class="w-4/6 h-4/6" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l7.1-1.01L12 2z"/></svg>`
+        ];
+
+        function setupVisualRound() {
+            clearVisualTimer();
+            isVisualLocked = false;
+            const grid = document.getElementById('visual-grid');
+            grid.innerHTML = '';
+            document.getElementById('visual-level').textContent = visualLevel;
+            updateLivesDisplay('visual-lives-box', visualLevel, visualMistakes);
+
+            // تعیین تعداد ردیف و ستون بر اساس سطح (گسترش سریع‌تر تا شبکه ۷×۷)
+            let cols = 3;
+            let rows = 3;
+            if (visualLevel >= 3 && visualLevel < 6) {
+                cols = 4; rows = 4; // 16 خانه (مراحل ۳ تا ۵)
+            } else if (visualLevel >= 6 && visualLevel < 10) {
+                cols = 5; rows = 5; // 25 خانه (مراحل ۶ تا ۹)
+            } else if (visualLevel >= 10 && visualLevel < 15) {
+                cols = 6; rows = 6; // 36 خانه (مراحل ۱۰ تا ۱۴)
+            } else if (visualLevel >= 15) {
+                cols = 7; rows = 7; // 49 خانه (مرحله ۱۵ به بعد)
+            }
+
+            const totalItems = cols * rows;
+            grid.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
+            
+            // تنظیم فاصله و اندازه کانتینر متناسب با تراکم جدول
+            if (cols >= 6) {
+                grid.className = "grid gap-1 sm:gap-1.5 max-w-md mx-auto p-1";
+            } else if (cols === 5) {
+                grid.className = "grid gap-1.5 sm:gap-2 max-w-md mx-auto p-1";
+            } else {
+                grid.className = "grid gap-2.5 sm:gap-3 max-w-md mx-auto p-2";
+            }
+
+            // انتخاب نوع چالش: رنگ، چرخش یا حروف فارسی شبیه به هم
+            // اگر چالش قبلی با موفقیت حل نشده باشد، نوع چالش تغییر نمی‌کند
+            if (!currentVisualChallengeType) {
+                const randType = Math.random();
+                if (randType < 0.36) {
+                    currentVisualChallengeType = 'letters';
+                } else if (randType < 0.70) {
+                    currentVisualChallengeType = 'color';
+                } else {
+                    currentVisualChallengeType = 'rotation';
+                }
+            }
+            const challengeType = currentVisualChallengeType;
+
+            const oddIndex = Math.floor(Math.random() * totalItems);
+            const baseHue = Math.floor(Math.random() * 360);
+            const baseAngle = Math.floor(Math.random() * 360); // زاویه پایه تصادفی برای سخت‌تر شدن تشخیص چرخش
+            const shapeSvg = visualShapes[Math.floor(Math.random() * visualShapes.length)];
+
+            // انتخاب جفت حروف فارسی در صورت فعال بودن حالت حروف
+            const letterPair = similarPersianLetters[Math.floor(Math.random() * similarPersianLetters.length)];
+            const swapPair = Math.random() > 0.5;
+            const baseLetter = swapPair ? letterPair[0] : letterPair[1];
+            const oddLetter = swapPair ? letterPair[1] : letterPair[0];
+
+            // افزایش سختی: تفاوت‌های ظریف‌تر در رنگ و زاویه چرخش
+            const lightnessDiff = Math.max(8, 24 - Math.floor(visualLevel * 0.9));
+            const rotationDiff = Math.max(10, 38 - Math.floor(visualLevel * 1.6));
+            const hueDiff = visualLevel > 6 ? Math.max(5, 18 - Math.floor(visualLevel * 0.7)) : 0;
+
+            // عامل حواس‌پرتی در مراحل بالاتر (رنگ‌های تصادفی برای حروف یا چرخش‌ها تا چشم فریب بخورد)
+            const hasColorDistractor = (visualLevel >= 5 && challengeType !== 'color');
+
+            if (challengeType === 'letters') {
+                document.getElementById('visual-instruction').textContent = 'کدام حرف فارسی با بقیه تفاوت دارد؟';
+            } else if (challengeType === 'color') {
+                document.getElementById('visual-instruction').textContent = 'کدام شکل طیف رنگی متفاوتی نسبت به بقیه دارد؟';
+            } else {
+                document.getElementById('visual-instruction').textContent = 'کدام شکل زاویه چرخش متفاوتی نسبت به بقیه دارد؟';
+            }
+
+            // تنظیم اندازه فونت حروف متناسب با تعداد ستون‌ها
+            const fontSizeClass = cols === 3 ? 'text-3xl sm:text-4xl' : 
+                                  (cols === 4 ? 'text-2xl sm:text-3xl' : 
+                                  (cols === 5 ? 'text-xl sm:text-2xl' : 
+                                  (cols === 6 ? 'text-base sm:text-lg' : 'text-sm sm:text-base')));
+
+            for (let i = 0; i < totalItems; i++) {
+                const isOdd = (i === oddIndex);
+                const btn = document.createElement('button');
+                if (isOdd) {
+                    btn.id = 'visual-correct-item';
+                }
+                
+                let itemLightness = 58;
+                let itemRotation = 0;
+                let itemHue = baseHue;
+
+                if (challengeType === 'color') {
+                    const sign = (baseHue % 2 === 0) ? 1 : -1;
+                    itemLightness = isOdd ? (55 + (sign * lightnessDiff)) : 55;
+                    itemHue = isOdd ? (baseHue + hueDiff + 360) % 360 : baseHue;
+                } else if (challengeType === 'rotation') {
+                    itemRotation = isOdd ? (baseAngle + rotationDiff) : baseAngle;
+                }
+
+                // اعمال رنگ‌های متنوع به عنوان حواس‌پرتی در مراحل بالاتر (وقتی چالش رنگ نیست)
+                if (hasColorDistractor) {
+                    itemHue = (baseHue + (i * 47)) % 360;
+                    itemLightness = 62;
+                }
+
+                btn.className = "aspect-square rounded-lg sm:rounded-xl bg-slate-900/80 border-2 border-slate-700 hover:border-slate-500 flex items-center justify-center transition-all duration-150 cursor-pointer active:scale-95 shadow-md overflow-hidden";
+                btn.style.color = `hsl(${itemHue}, 78%, ${itemLightness}%)`;
+                
+                const innerWrapper = document.createElement('div');
+                innerWrapper.className = "w-full h-full flex items-center justify-center font-extrabold";
+                
+                if (challengeType === 'letters') {
+                    innerWrapper.classList.add(...fontSizeClass.split(' '));
+                    innerWrapper.textContent = isOdd ? oddLetter : baseLetter;
+                } else {
+                    innerWrapper.style.transform = `rotate(${itemRotation}deg)`;
+                    innerWrapper.innerHTML = shapeSvg;
+                }
+                
+                btn.appendChild(innerWrapper);
+                btn.onclick = () => handleVisualChoice(isOdd, btn);
+                grid.appendChild(btn);
+            }
+
+            // فعال‌سازی تایمر زودتر (از مرحله ۴ به بعد) با زمان فشرده‌تر
+            const timerBox = document.getElementById('visual-timer-box');
+            const timerSpan = document.getElementById('visual-timer');
+            if (visualLevel >= 4) {
+                timerBox.classList.remove('hidden');
+                visualTimeLeft = Math.max(5, 13 - Math.floor((visualLevel - 4) * 0.55));
+                timerSpan.textContent = visualTimeLeft;
+                timerBox.classList.remove('border-rose-500', 'text-rose-300', 'bg-rose-950/90');
+                timerBox.classList.add('border-amber-600/50', 'text-amber-300', 'bg-amber-950/80');
+
+                visualTimerInterval = setInterval(() => {
+                    if (isVisualLocked) {
+                        clearVisualTimer();
+                        return;
+                    }
+                    visualTimeLeft--;
+                    timerSpan.textContent = visualTimeLeft;
+
+                    if (visualTimeLeft <= 3) {
+                        timerBox.classList.remove('border-amber-600/50', 'text-amber-300', 'bg-amber-950/80');
+                        timerBox.classList.add('border-rose-500', 'text-rose-300', 'bg-rose-950/90');
+                    }
+
+                    if (visualTimeLeft <= 0) {
+                        clearVisualTimer();
+                        handleVisualTimeout();
+                    }
+                }, 1000);
+            } else {
+                timerBox.classList.add('hidden');
+            }
+        }
+
+        function handleVisualTimeout() {
+            if (isVisualLocked) return;
+            isVisualLocked = true;
+            playFeedbackSound(false);
+
+            const correctBtn = document.getElementById('visual-correct-item');
+            if (correctBtn) {
+                correctBtn.classList.remove('border-slate-700');
+                correctBtn.classList.add('border-amber-400', 'ring-4', 'ring-amber-400/50', 'scale-105', 'bg-amber-950/40');
+            }
+
+            let isGameOver = false;
+            if (visualLevel >= 5) {
+                visualMistakes++;
+                updateLivesDisplay('visual-lives-box', visualLevel, visualMistakes);
+                if (visualMistakes >= 3) {
+                    isGameOver = true;
+                    showToast(`زمان تمام شد و ۳ خطا در مرحله ${visualLevel} پر شد! باخت در این مرحله.`, 'error');
+                } else {
+                    showToast(`زمان تمام شد! خطای ${visualMistakes} از ۳ در این مرحله...`, 'error');
+                }
+            } else {
+                showToast('زمان تمام شد! گزینه متفاوت مشخص شد...', 'error');
+            }
+
+            setTimeout(() => {
+                if (isGameOver) {
+                    visualMistakes = 0;
+                }
+                setupVisualRound();
+            }, 1500);
+        }
+
+        function handleVisualChoice(isCorrect, element) {
+            if (isVisualLocked) return;
+
+            if (isCorrect) {
+                isVisualLocked = true;
+                clearVisualTimer();
+                playFeedbackSound(true);
+                const timeBonus = visualLevel >= 4 ? visualTimeLeft * 3 : 0;
+                const points = (visualLevel * 12) + timeBonus;
+                updateScore(points);
+                showToast(timeBonus > 0 ? `عالی! +${points} امتیاز (با پاداش سرعت)` : `دقیق بود! +${points} امتیاز`, 'success');
+                element.classList.add('border-emerald-400', 'ring-2', 'ring-emerald-400');
+                
+                setTimeout(() => {
+                    visualLevel++;
+                    visualMistakes = 0;
+                    currentVisualChallengeType = null; // آزادسازی نوع چالش برای مرحله بعد
+                    setupVisualRound();
+                }, 700);
+            } else {
+                playFeedbackSound(false);
+                element.classList.add('shake-error', 'border-rose-500', 'bg-rose-950/50');
+
+                // اگر در مرحله ۵ به بالا هستیم و هنوز جان باقی مانده، صفحه عوض نشود و کاربر بتواند دوباره انتخاب کند
+                if (visualLevel >= 5) {
+                    visualMistakes++;
+                    updateLivesDisplay('visual-lives-box', visualLevel, visualMistakes);
+
+                    if (visualMistakes < 3) {
+                        showToast(`اشتباه بود! یک جان کم شد (${3 - visualMistakes} فرصت باقی‌مانده). دوباره انتخاب کنید!`, 'error');
+                        setTimeout(() => {
+                            element.classList.remove('shake-error');
+                        }, 450);
+                        return;
+                    }
+                }
+
+                // باخت کامل مرحله (خطای سوم) یا مراحل زیر ۵: نمایش جواب درست و تغییر مرحله
+                isVisualLocked = true;
+                clearVisualTimer();
+                
+                const correctBtn = document.getElementById('visual-correct-item');
+                if (correctBtn) {
+                    correctBtn.classList.remove('border-slate-700');
+                    correctBtn.classList.add('border-amber-400', 'ring-4', 'ring-amber-400/50', 'scale-105', 'bg-amber-950/40');
+                }
+
+                const isGameOver = (visualLevel >= 5 && visualMistakes >= 3);
+                if (isGameOver) {
+                    showToast(`۳ خطا در مرحله ${visualLevel}! این مرحله را باختید، شروع مجدد مرحله...`, 'error');
+                } else {
+                    showToast('اشتباه بود! گزینه متفاوت مشخص شد، در حال تغییر...', 'error');
+                }
+                
+                setTimeout(() => {
+                    if (isGameOver) {
+                        visualMistakes = 0;
+                    }
+                    setupVisualRound();
+                }, 1500);
+            }
+        }
+
+        // ==========================================
+        // بخش ۳: بازی تمیز شنیداری (Auditory Discrimination)
+        // ==========================================
+        let auditoryLevel = 1;
+        let auditoryMistakes = 0;
+        let currentAuditoryChallenge = null;
+        let isPlayingAudio = false;
+
+        function setupAuditoryRound() {
+            document.getElementById('auditory-level').textContent = auditoryLevel;
+            updateLivesDisplay('auditory-lives-box', auditoryLevel, auditoryMistakes);
+            const optionsContainer = document.getElementById('auditory-options');
+            optionsContainer.innerHTML = '';
+
+            // فرکانس پایه بین 260 تا 520 هرتز
+            const baseFreq = 260 + Math.floor(Math.random() * 240);
+            // اختلاف فرکانس بر اساس سطح با شیب ملایم‌تر تا مراحل بالا
+            const freqDiff = Math.max(6, 60 - (auditoryLevel * 2.5));
+
+            // نوع چالش شنیداری: مقایسه دو صدا یا تشخیص صدای متفاوت از بین ۳ صدا
+            const mode = auditoryLevel % 2 === 1 ? 'compare_two' : 'odd_of_three';
+
+            if (mode === 'compare_two') {
+                const relation = Math.floor(Math.random() * 3); // 0: دوم زیرتر، 1: دوم بم‌تر، 2: یکسان
+                let secondFreq = baseFreq;
+                if (relation === 0) secondFreq = baseFreq + freqDiff;
+                if (relation === 1) secondFreq = baseFreq - freqDiff;
+
+                currentAuditoryChallenge = {
+                    type: 'compare_two',
+                    freqs: [baseFreq, secondFreq],
+                    correctAnswer: relation
+                };
+
+                document.getElementById('auditory-instruction').textContent = 'دو صدا پشت سر هم پخش می‌شوند؛ صدای دوم نسبت به اولی چگونه است؟';
+                document.getElementById('auditory-prompt').textContent = 'آماده پخش ۲ نت صوتی';
+
+                const choices = [
+                    { label: 'صدای دوم زیرتر (تیزتر) است', val: 0 },
+                    { label: 'صدای دوم بم‌تر (کلفت‌تر) است', val: 1 },
+                    { label: 'هر دو صدا کاملاً یکسان هستند', val: 2 }
+                ];
+
+                choices.forEach(c => {
+                    const btn = createAuditoryOptionBtn(c.label, () => checkAuditoryAnswer(c.val, btn));
+                    optionsContainer.appendChild(btn);
+                });
+
+            } else {
+                // حالت ۳ صدا که یکی متفاوت است
+                const oddPos = Math.floor(Math.random() * 3); // 0, 1, 2
+                const direction = Math.random() > 0.5 ? 1 : -1;
+                const freqs = [baseFreq, baseFreq, baseFreq];
+                freqs[oddPos] = baseFreq + (direction * freqDiff);
+
+                currentAuditoryChallenge = {
+                    type: 'odd_of_three',
+                    freqs: freqs,
+                    correctAnswer: oddPos
+                };
+
+                document.getElementById('auditory-instruction').textContent = 'سه صدا پشت سر هم پخش می‌شوند؛ کدام صدا با بقیه فرق دارد؟';
+                document.getElementById('auditory-prompt').textContent = 'آماده پخش ۳ نت صوتی';
+
+                const choices = [
+                    { label: 'صدای اول متفاوت بود', val: 0 },
+                    { label: 'صدای دوم متفاوت بود', val: 1 },
+                    { label: 'صدای سوم متفاوت بود', val: 2 }
+                ];
+
+                choices.forEach(c => {
+                    const btn = createAuditoryOptionBtn(c.label, () => checkAuditoryAnswer(c.val, btn));
+                    optionsContainer.appendChild(btn);
+                });
+            }
+
+            // پخش خودکار اولیه با تاخیر کوتاه
+            setTimeout(() => playCurrentAuditoryChallenge(), 400);
+        }
+
+        function createAuditoryOptionBtn(text, onClickHandler) {
+            const btn = document.createElement('button');
+            btn.className = "btn-game bg-slate-700/80 hover:bg-slate-600 border border-slate-600 text-white font-medium py-3.5 px-4 rounded-xl text-sm transition-colors cursor-pointer";
+            btn.textContent = text;
+            btn.onclick = onClickHandler;
+            return btn;
+        }
+
+        async function playCurrentAuditoryChallenge() {
+            if (isPlayingAudio || !currentAuditoryChallenge) return;
+            const audioReady = await ensureAudio();
+            
+            isPlayingAudio = true;
+            const waveBox = document.getElementById('sound-wave-box');
+            const promptText = document.getElementById('auditory-prompt');
+            waveBox.classList.add('playing');
+
+            const freqs = currentAuditoryChallenge.freqs;
+            const labels = ['در حال پخش صدای اول...', 'در حال پخش صدای دوم...', 'در حال پخش صدای سوم...'];
+
+            try {
+                for (let i = 0; i < freqs.length; i++) {
+                    promptText.textContent = labels[i];
+                    if (audioReady && synth) {
+                        synth.triggerAttackRelease(freqs[i], "4n");
+                    }
+                    await new Promise(r => setTimeout(r, 650));
+                }
+            } catch (err) {
+                console.error('خطا در پخش نت‌های چالش:', err);
+            } finally {
+                waveBox.classList.remove('playing');
+                promptText.textContent = audioReady 
+                    ? 'پاسخ خود را از گزینه‌های زیر انتخاب کنید (یا دوباره گوش دهید)'
+                    : 'کتابخانه صوتی در حال بارگذاری است، دوباره دکمه پخش را بزنید';
+                isPlayingAudio = false;
+            }
+        }
+
+        function checkAuditoryAnswer(selectedVal, btnElement) {
+            if (isPlayingAudio) return;
+
+            if (selectedVal === currentAuditoryChallenge.correctAnswer) {
+                playFeedbackSound(true);
+                const points = auditoryLevel * 12;
+                updateScore(points);
+                showToast(`گوش تیزبینی داری! +${points} امتیاز`, 'success');
+                btnElement.classList.remove('bg-slate-700/80', 'border-slate-600');
+                btnElement.classList.add('bg-emerald-600', 'border-emerald-400');
+
+                setTimeout(() => {
+                    auditoryLevel++;
+                    auditoryMistakes = 0;
+                    setupAuditoryRound();
+                }, 900);
+            } else {
+                playFeedbackSound(false);
+                btnElement.classList.add('shake-error', 'bg-rose-800', 'border-rose-500');
+
+                if (auditoryLevel >= 5) {
+                    auditoryMistakes++;
+                    updateLivesDisplay('auditory-lives-box', auditoryLevel, auditoryMistakes);
+                    if (auditoryMistakes >= 3) {
+                        showToast(`۳ خطا در مرحله ${auditoryLevel}! این مرحله را باختید، شروع مجدد مرحله...`, 'error');
+                        setTimeout(() => {
+                            auditoryMistakes = 0;
+                            setupAuditoryRound();
+                        }, 1200);
+                        return;
+                    } else {
+                        showToast(`اشتباه بود! خطای ${auditoryMistakes} از ۳ در این مرحله`, 'error');
+                    }
+                } else {
+                    showToast('دوباره گوش بده و دقت کن!', 'error');
+                }
+
+                setTimeout(() => {
+                    btnElement.classList.remove('shake-error', 'bg-rose-800', 'border-rose-500');
+                }, 600);
+            }
+        }
+    </script>
+</body>
+</html>
