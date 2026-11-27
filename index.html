@@ -367,6 +367,8 @@
         // مدیریت وضعیت کلی، متغیرها و سیستم صوتی
         // ==========================================
         let totalScore = 0;
+        let currentMode = 'menu';
+        let hasRestoredFlutterData = false;
         let synth = null;
         let isAudioInitialized = false;
         let toastTimeout = null;
@@ -498,6 +500,7 @@
 
         // اعمال داده‌های بازیابی‌شده از فضای ابری به وضعیت فعلی بازی
         window.applySavedProgress = function(data) {
+            if (hasRestoredFlutterData) return;
             if (typeof data.totalScore === 'number') {
                 totalScore = data.totalScore;
                 const scoreEl = document.getElementById('total-score');
@@ -535,17 +538,34 @@
 
         function showMenu() {
             hideAllScreens();
+            currentMode = 'menu';
+            memorySequence = [];
+            playerSequence = [];
+            isShowingSequence = false;
+            isPlayerTurn = false;
+            memoryHelpUsed = false;
             document.getElementById('menu-screen').classList.remove('hidden');
             document.getElementById('home-btn').classList.add('hidden');
             syncMenuLevelLabels();
         }
 
         async function startGame(mode) {
+            currentMode = mode;
             await ensureAudio();
+            showGameScreen(mode);
+        }
+
+        function showGameScreen(mode, autoPlayAuditory = true) {
             hideAllScreens();
+            currentMode = mode;
             document.getElementById('home-btn').classList.remove('hidden');
 
             if (mode === 'memory') {
+                memorySequence = [];
+                playerSequence = [];
+                isShowingSequence = false;
+                isPlayerTurn = false;
+                memoryHelpUsed = false;
                 document.getElementById('memory-screen').classList.remove('hidden');
                 buildMemoryGrid();
                 document.getElementById('memory-level').textContent = memoryLevel;
@@ -558,7 +578,7 @@
                 setupVisualRound();
             } else if (mode === 'auditory') {
                 document.getElementById('auditory-screen').classList.remove('hidden');
-                setupAuditoryRound();
+                setupAuditoryRound(autoPlayAuditory);
             }
         }
 
@@ -992,7 +1012,7 @@
         // ==========================================
         // بخش ۳: منطق بازی تمیز شنیداری (Auditory)
         // ==========================================
-        function setupAuditoryRound() {
+        function setupAuditoryRound(autoPlay = true) {
             document.getElementById('auditory-level').textContent = auditoryLevel;
             updateLivesDisplay('auditory-lives-box', auditoryLevel, auditoryMistakes);
 
@@ -1061,8 +1081,9 @@
                 });
             }
 
-            // پخش خودکار اولیه با تاخیر کوتاه
-            setTimeout(() => playCurrentAuditoryChallenge(), 400);
+            if (autoPlay) {
+                setTimeout(() => playCurrentAuditoryChallenge(), 400);
+            }
         }
 
         function createAuditoryOptionBtn(text, onClickHandler) {
@@ -1149,6 +1170,135 @@
                 }, 600);
             }
         }
+
+        function normalizeGameData(data) {
+            if (!data || typeof data !== 'object' || data.schemaVersion !== 1) return null;
+            const progress = data.progress;
+            const modes = ['menu', 'memory', 'visual', 'auditory'];
+            const challengeTypes = [null, 'color', 'rotation', 'letter'];
+
+            if (!progress || typeof progress !== 'object' ||
+                !modes.includes(progress.currentMode) ||
+                !Number.isFinite(progress.totalScore) || progress.totalScore < 0 ||
+                !Number.isSafeInteger(progress.memoryLevel) || progress.memoryLevel < 1 ||
+                !Number.isSafeInteger(progress.visualLevel) || progress.visualLevel < 1 ||
+                !Number.isSafeInteger(progress.auditoryLevel) || progress.auditoryLevel < 1 ||
+                !Number.isInteger(progress.memoryMistakes) || progress.memoryMistakes < 0 || progress.memoryMistakes > 2 ||
+                !Number.isInteger(progress.visualMistakes) || progress.visualMistakes < 0 || progress.visualMistakes > 2 ||
+                !Number.isInteger(progress.auditoryMistakes) || progress.auditoryMistakes < 0 || progress.auditoryMistakes > 2 ||
+                !Array.isArray(progress.memorySequence) || progress.memorySequence.length > 14 ||
+                !progress.memorySequence.every(index => Number.isInteger(index) && index >= 0 && index < 9) ||
+                !Array.isArray(progress.playerSequence) ||
+                progress.playerSequence.length > progress.memorySequence.length ||
+                !progress.playerSequence.every((index, position) => index === progress.memorySequence[position]) ||
+                !['ready', 'showing', 'input'].includes(progress.memoryPhase) ||
+                !challengeTypes.includes(progress.currentVisualChallengeType)) {
+                return null;
+            }
+
+            if ((progress.memoryPhase === 'showing' || progress.memoryPhase === 'input') &&
+                progress.memorySequence.length === 0) {
+                return null;
+            }
+
+            return {
+                totalScore: progress.totalScore,
+                memoryLevel: progress.memoryLevel,
+                visualLevel: progress.visualLevel,
+                auditoryLevel: progress.auditoryLevel,
+                currentMode: progress.currentMode,
+                memoryMistakes: progress.memoryMistakes,
+                visualMistakes: progress.visualMistakes,
+                auditoryMistakes: progress.auditoryMistakes,
+                memorySequence: [...progress.memorySequence],
+                playerSequence: [...progress.playerSequence],
+                memoryPhase: progress.memoryPhase,
+                memoryHelpUsed: progress.memoryHelpUsed === true,
+                currentVisualChallengeType: progress.currentVisualChallengeType
+            };
+        }
+
+        function saveGameData() {
+            return {
+                schemaVersion: 1,
+                progress: {
+                    totalScore,
+                    memoryLevel,
+                    visualLevel,
+                    auditoryLevel,
+                    currentMode,
+                    memoryMistakes,
+                    visualMistakes,
+                    auditoryMistakes,
+                    memorySequence: currentMode === 'memory' ? [...memorySequence] : [],
+                    playerSequence: currentMode === 'memory' ? [...playerSequence] : [],
+                    memoryPhase: currentMode !== 'memory'
+                        ? 'ready'
+                        : isShowingSequence
+                            ? 'showing'
+                            : isPlayerTurn
+                                ? 'input'
+                                : 'ready',
+                    memoryHelpUsed: currentMode === 'memory' && memoryHelpUsed,
+                    currentVisualChallengeType
+                }
+            };
+        }
+
+        function loadGameData(data) {
+            const saved = normalizeGameData(data);
+            if (!saved) return;
+
+            hasRestoredFlutterData = true;
+            totalScore = saved.totalScore;
+            memoryLevel = saved.memoryLevel;
+            visualLevel = saved.visualLevel;
+            auditoryLevel = saved.auditoryLevel;
+            currentMode = saved.currentMode;
+            memoryMistakes = saved.memoryMistakes;
+            visualMistakes = saved.visualMistakes;
+            auditoryMistakes = saved.auditoryMistakes;
+            currentVisualChallengeType = saved.currentVisualChallengeType;
+
+            const scoreEl = document.getElementById('total-score');
+            if (scoreEl) scoreEl.textContent = totalScore;
+            syncMenuLevelLabels();
+
+            if (currentMode === 'menu') {
+                showMenu();
+                return;
+            }
+
+            showGameScreen(currentMode, false);
+            if (currentMode !== 'memory') return;
+
+            memorySequence = saved.memorySequence;
+            playerSequence = saved.playerSequence;
+            memoryHelpUsed = saved.memoryHelpUsed;
+            const startButton = document.getElementById('memory-start-btn');
+            const helpButton = document.getElementById('memory-help-btn');
+            if (saved.memoryPhase === 'showing') {
+                startButton.classList.add('hidden');
+                helpButton.classList.add('hidden');
+                void playMemorySequence();
+            } else if (saved.memoryPhase === 'input') {
+                isShowingSequence = false;
+                isPlayerTurn = true;
+                startButton.classList.add('hidden');
+                document.getElementById('memory-status').textContent = playerSequence.length > 0
+                    ? `ادامه دهید! (${memorySequence.length - playerSequence.length} گام باقی‌مانده)`
+                    : `نوبت شماست! (${memorySequence.length} خانه را به ترتیب بزنید)`;
+                helpButton.classList.toggle('hidden', memoryHelpUsed);
+            } else {
+                memorySequence = [];
+                playerSequence = [];
+                isShowingSequence = false;
+                isPlayerTurn = false;
+            }
+        }
+
+        window.loadGameData = loadGameData;
+        window.saveGameData = saveGameData;
     </script>
 </body>
 </html>
